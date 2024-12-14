@@ -7,11 +7,11 @@ const app = express();
 const port = 5000;
 const server = http.createServer(app); // Correct server creation
 
-app.use(cors({ origin: 'http://localhost:3000' })); // Keep consistent with frontend URL
+app.use(cors({ origin: 'https://bingo-f.vercel.app' })); // Keep consistent with frontend URL
 
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000', // Replace with your frontend URL
+    origin: 'https://bingo-f.vercel.app', // Replace with your frontend URL
   },
 });
 
