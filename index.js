@@ -20,7 +20,6 @@ const rooms = {};
 
 // WebSocket connection handling
 io.on("connection", (socket) => {
-
   // Join a room
   socket.on("joinRoom", (roomCode) => {
     if (!rooms[roomCode]) {
