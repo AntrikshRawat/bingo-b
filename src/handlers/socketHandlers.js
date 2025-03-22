@@ -1,7 +1,11 @@
 const setupSocketHandlers = (io, gameService) => {
  io.on("connection", (socket) => {
-   socket.on("joinRoom", (roomCode) => {
+   socket.on("joinRoom", (roomCode,callback) => {
      const room = gameService.createOrJoinRoom(roomCode, socket.id);
+     if(!room) {
+      callback("Room is Full.");
+      return;
+     }
      socket.join(roomCode);
      io.to(roomCode).emit("roomState", room);
    });
@@ -68,7 +72,8 @@ const setupSocketHandlers = (io, gameService) => {
    socket.on("disconnect", () => {
      const result = gameService.handlePlayerDisconnect(socket.id);
      if (result) {
-       io.to(result.roomCode).emit("roomState", result.room);
+      const emptyGrid = Array(5).fill(null).map(() => Array(5).fill(null));
+       io.to(result.roomCode).emit("resetGame",result.roomCode,emptyGrid);
      }
    });
  });

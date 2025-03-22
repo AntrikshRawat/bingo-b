@@ -9,6 +9,9 @@ class GameService {
     if (!this.rooms[roomCode]) {
       this.rooms[roomCode] = new Room();
     }
+    else if(this.rooms[roomCode] && this.rooms[roomCode].isRoomFull()) {
+      return false;
+    }
     this.rooms[roomCode].addPlayer(socketId);
     return this.rooms[roomCode];
   }
