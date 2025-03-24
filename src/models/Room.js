@@ -22,7 +22,7 @@ class Room {
  }
 
  areAllPlayersReady() {
-   return Object.values(this.players).every(player => player.ready);
+   return Object.values(this.players).every(player => player.ready) && Object.keys(this.players).length >= 2;
  }
 
  isRoomFull() {
