@@ -4,13 +4,16 @@ class Room {
    this.gameStarted = false;
  }
 
- addPlayer(socketId) {
+ addPlayer(socketId,name) {
    this.players[socketId] = {
      grid: Array(5).fill(null).map(() => Array(5).fill(null)),
-     ready: false
+     ready: false,
+     name:name
    };
  }
-
+ getPlayersName() {
+  return Object.keys(this.players).map(id => this.players[id].name);
+ }
  removePlayer(socketId) {
    delete this.players[socketId];
  }

@@ -5,14 +5,14 @@ class GameService {
     this.rooms = {};
   }
 
-  createOrJoinRoom(roomCode, socketId) {
+  createOrJoinRoom(roomCode, socketId,name) {
     if (!this.rooms[roomCode]) {
       this.rooms[roomCode] = new Room();
     }
     else if(this.rooms[roomCode] && this.rooms[roomCode].isRoomFull()) {
       return false;
     }
-    this.rooms[roomCode].addPlayer(socketId);
+    this.rooms[roomCode].addPlayer(socketId,name);
     return this.rooms[roomCode];
   }
 

@@ -1,12 +1,13 @@
 const setupSocketHandlers = (io, gameService) => {
  io.on("connection", (socket) => {
-   socket.on("joinRoom", (roomCode,callback) => {
-     const room = gameService.createOrJoinRoom(roomCode, socket.id);
+   socket.on("joinRoom", (roomCode,name,callback) => {
+     const room = gameService.createOrJoinRoom(roomCode, socket.id,name);
      if(!room) {
       callback("Room is Full.");
       return;
      }
      socket.join(roomCode);
+     io.to(roomCode).emit('playersName',room.getPlayersName());
      io.to(roomCode).emit("roomState", room);
    });
 
