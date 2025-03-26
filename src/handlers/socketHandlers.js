@@ -75,6 +75,7 @@ const setupSocketHandlers = (io, gameService) => {
      if (result) {
       const emptyGrid = Array(5).fill(null).map(() => Array(5).fill(null));
        io.to(result.roomCode).emit("resetGame",result.roomCode,emptyGrid);
+       io.to(result.roomCode).emit('playersName',room.getPlayersName());
      }
    });
  });
