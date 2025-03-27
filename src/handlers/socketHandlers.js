@@ -10,7 +10,6 @@ const setupSocketHandlers = (io, gameService) => {
      io.to(roomCode).emit('playersName',room.getPlayersName());
      io.to(roomCode).emit("roomState", room);
    });
-
    socket.on("submitGrid", (roomCode) => {
      const room = gameService.rooms[roomCode];
      if (!room?.players[socket.id]) {
@@ -75,7 +74,7 @@ const setupSocketHandlers = (io, gameService) => {
      if (result) {
       const emptyGrid = Array(5).fill(null).map(() => Array(5).fill(null));
        io.to(result.roomCode).emit("resetGame",result.roomCode,emptyGrid);
-       io.to(result.roomCode).emit('playersName',room.getPlayersName());
+       io.to(result.roomCode).emit("playersName",result.room.getPlayersName());
      }
    });
  });

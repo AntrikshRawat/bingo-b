@@ -15,7 +15,6 @@ class GameService {
     this.rooms[roomCode].addPlayer(socketId,name);
     return this.rooms[roomCode];
   }
-
   handlePlayerDisconnect(socketId) {
     for (const [roomCode, room] of Object.entries(this.rooms)) {
       if (room.players[socketId]) {
