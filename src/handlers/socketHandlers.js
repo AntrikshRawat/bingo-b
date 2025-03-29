@@ -16,7 +16,6 @@ const setupSocketHandlers = (io, gameService) => {
        socket.emit("error", "Invalid room or player");
        return;
      }
-
      room.setPlayerReady(socket.id);
      
      if (room.areAllPlayersReady()) {
@@ -68,14 +67,20 @@ const setupSocketHandlers = (io, gameService) => {
        });
      }
    });
-
+   function leave(socketId) {
+    const result = gameService.handlePlayerDisconnect(socketId);
+    if (result) {
+     const emptyGrid = Array(5).fill(null).map(() => Array(5).fill(null));
+      io.to(result.roomCode).emit("resetGame",result.roomCode,emptyGrid);
+      io.to(result.roomCode).emit("playersName",result.room.getPlayersName());
+    }
+   }
+   socket.on("leaveroom",(roomCode)=>{ 
+    socket.leave(roomCode);
+    leave(socket.id);
+   })
    socket.on("disconnect", () => {
-     const result = gameService.handlePlayerDisconnect(socket.id);
-     if (result) {
-      const emptyGrid = Array(5).fill(null).map(() => Array(5).fill(null));
-       io.to(result.roomCode).emit("resetGame",result.roomCode,emptyGrid);
-       io.to(result.roomCode).emit("playersName",result.room.getPlayersName());
-     }
+    leave(socket.id);
    });
  });
 }

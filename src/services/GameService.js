@@ -4,7 +4,6 @@ class GameService {
   constructor() {
     this.rooms = {};
   }
-
   createOrJoinRoom(roomCode, socketId,name) {
     if (!this.rooms[roomCode]) {
       this.rooms[roomCode] = new Room();
@@ -28,11 +27,10 @@ class GameService {
     }
     return null;
   }
-
   checkRoom(roomCode) {
     const room = this.rooms[roomCode];
     if (!room) {
-      return { status: false, message: "Room does not exist. Please enter a valid room code." };
+      return null;
     }
     if (room.isRoomFull()) {
       return { status: false, message: "Room is full. Please join or create another room." };

@@ -1,9 +1,10 @@
 class Room {
- constructor() {
+ constructor(tournamentId = null) {
    this.players = {};
    this.gameStarted = false;
+   this.tournamentId = tournamentId;
+   this.matchWinners = [];
  }
-
  addPlayer(socketId,name) {
    this.players[socketId] = {
      grid: Array(5).fill(null).map(() => Array(5).fill(null)),
@@ -17,21 +18,24 @@ class Room {
  removePlayer(socketId) {
    delete this.players[socketId];
  }
-
+ changeHost() {
+  const nextHost = Object.keys(this.players);
+  return nextHost[0];
+ }
  setPlayerReady(socketId) {
    if (this.players[socketId]) {
      this.players[socketId].ready = true;
    }
  }
-
  areAllPlayersReady() {
    return Object.values(this.players).every(player => player.ready) && Object.keys(this.players).length >= 2;
  }
 
  isRoomFull() {
-   return Object.keys(this.players).length >= 2;
+  if(this.tournamentId)
+  return Object.keys(this.players).length >= 4;
+  return Object.keys(this.players).length >= 2;
  }
-
  reset() {
    this.gameStarted = false;
    Object.keys(this.players).forEach(playerId => {
