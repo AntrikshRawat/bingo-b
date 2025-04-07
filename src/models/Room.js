@@ -3,7 +3,6 @@ class Room {
    this.players = {};
    this.gameStarted = false;
    this.tournamentId = tournamentId;
-   this.matchWinners = [];
  }
  addPlayer(socketId,name) {
    this.players[socketId] = {
@@ -12,8 +11,14 @@ class Room {
      name:name
    };
  }
- getPlayersName() {
+ playerInfo(index) {
+  return Object.keys(this.players)[index];
+ }
+ getPlayersName(players = null) {
+  if(!players)
   return Object.keys(this.players).map(id => this.players[id].name);
+  const playerNames = Object.keys(this.players).filter(player => players.includes(player)).map(player => this.players[player].name);
+  return playerNames;
  }
  removePlayer(socketId) {
    delete this.players[socketId];

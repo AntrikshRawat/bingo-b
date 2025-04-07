@@ -1,12 +1,13 @@
 const tournamentHander = (io, tourService) => {
  io.on("connection", (socket) => {
-   socket.on("joinTournament", (tournamentId,name,callback) => {
-     const room = tourService.createOrJoinTournament(tournamentId, socket.id,name);
+   socket.on("joinTournament", (tournamentId, name, wasHost, callback) => {
+     const room = tourService.createOrJoinTournament(tournamentId, socket.id, name, wasHost);
      if(room) {
       socket.join(tournamentId);
       io.to(tournamentId).emit('playersName',room.getPlayersName());
       const host = tourService.getHost(tournamentId);
-      io.to(tournamentId).emit('host',host);
+      const hostName = room.players[host]?.name || '';
+      io.to(tournamentId).emit('host', { socketId: host, name: hostName });
       callback(null);
      }else{
       callback("Tournament is Full.");
@@ -21,8 +22,84 @@ const tournamentHander = (io, tourService) => {
    const result = tourService.handlePlayerDisconnect(socketId);
    if (result) {
      io.to(result.tourCode).emit("playersName",result.room.getPlayersName());
+     if (result.isHostChange && !result.isReconnecting) {
+       const newHost = tourService.getHost(result.tourCode);
+       const hostName = result.room.players[newHost]?.name || '';
+       io.to(result.tourCode).emit('host', { socketId: newHost, name: hostName });
+     }
    }
   }
+  socket.on("suffled",(tourCode,index)=>{
+    io.to(tourCode).emit("changed",index);
+  })
+  socket.on("startTournament", (tourCode, index) => {
+    const { matches, players1, players2 } = tourService.createTournamentRooms(tourCode, index);
+  
+    players1.forEach((player) => {
+      const playerSocket = io.sockets.sockets.get(player);
+      if (playerSocket) {
+        playerSocket.join(matches[0]); // Add to match 1 room
+        playerSocket.emit("round1", {round:1, matchRoom: matches[0] }); // Emit to the player's socket
+      }
+    });
+    
+    players2.forEach((player) => {
+      const playerSocket = io.sockets.sockets.get(player);
+      if (playerSocket) {
+        playerSocket.join(matches[1]); // Add to match 2 room
+        playerSocket.emit("round1", {round:1, matchRoom: matches[1] }); // Emit to the player's socket
+      }
+    });
+    setTimeout(()=>{
+      io.to(matches[0]).emit("istournament",{status:true,round:1});
+      io.to(matches[1]).emit("istournament",{status:true,round:1});
+    },2000);
+  });
+  socket.on('roundover',(roomId,oldId)=>{
+      const tourId = tourService.handleRound(1,roomId,oldId);
+      tourService.deleteMatch(tourId,roomId);
+      io.to(roomId).emit("backToTour",tourId);
+      if(tourService.isNextRoundReady(tourId)) {
+        const {finalRounds,winners,losers} = tourService.createFinalRound(tourId);
+
+        winners.forEach((player) => {
+          const playerSocket = io.sockets.sockets.get(player);
+          if (playerSocket) {
+            playerSocket.join(finalRounds[0]); // Add to match 1 room
+            setTimeout(()=>{
+              playerSocket.emit("round2", {round:2, matchRoom: finalRounds[0]});
+            },4000);
+             // Emit to the player's socket
+          }
+        });
+        
+        losers.forEach((player) => {
+          const playerSocket = io.sockets.sockets.get(player);
+          if (playerSocket) {
+            playerSocket.join(finalRounds[1]); // Add to match 2 room
+            setTimeout(()=>{
+              playerSocket.emit("round2", {round:2, matchRoom: finalRounds[1]});
+            },4000); // Emit to the player's socket
+          }
+        });
+        setTimeout(()=>{
+          io.to(finalRounds[0]).emit("istournament",{status:true,round:2,isWinner:true });
+          io.to(finalRounds[1]).emit("istournament",{status:true,round:2,isWinner:false });
+        },6000);
+      }
+  })
+  socket.on('finalEnd',(tourId,playerId,isWinner)=>{
+    const result = tourService.handleRound(2,tourId,playerId,isWinner);
+    io.to(tourId).emit("backToTour",result); 
+  })
+  socket.on('sendWinners',(tourId,callback)=>{
+    const winners = tourService.getWinners(tourId);
+    callback(winners);
+  })
+  socket.on('sendLoosers',(tourId,callback)=>{
+    const loosers = tourService.getLooser(tourId);
+    callback(loosers);
+  })
   socket.on("leaveTour",(roomCode)=>{ 
    socket.leave(roomCode);
    leave(socket.id);
