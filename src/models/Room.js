@@ -24,8 +24,8 @@ class Room {
    delete this.players[socketId];
  }
  changeHost() {
-  const nextHost = Object.keys(this.players);
-  return nextHost[0];
+  const nextHosts = Object.keys(this.players);
+  return nextHosts[0];
  }
  setPlayerReady(socketId) {
    if (this.players[socketId]) {

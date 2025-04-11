@@ -6,8 +6,7 @@ const tournamentHander = (io, tourService) => {
       socket.join(tournamentId);
       io.to(tournamentId).emit('playersName',room.getPlayersName());
       const host = tourService.getHost(tournamentId);
-      const hostName = room.players[host]?.name || '';
-      io.to(tournamentId).emit('host', { socketId: host, name: hostName });
+      io.to(tournamentId).emit('host', { socketId: host});
       callback(null);
      }else{
       callback("Tournament is Full.");
@@ -22,10 +21,9 @@ const tournamentHander = (io, tourService) => {
    const result = tourService.handlePlayerDisconnect(socketId);
    if (result) {
      io.to(result.tourCode).emit("playersName",result.room.getPlayersName());
-     if (result.isHostChange && !result.isReconnecting) {
+     if (result.isHostChange) {
        const newHost = tourService.getHost(result.tourCode);
-       const hostName = result.room.players[newHost]?.name || '';
-       io.to(result.tourCode).emit('host', { socketId: newHost, name: hostName });
+       io.to(result.tourCode).emit('host', { socketId: newHost });
      }
    }
   }
@@ -51,17 +49,15 @@ const tournamentHander = (io, tourService) => {
       }
     });
     setTimeout(()=>{
-      io.to(matches[0]).emit("istournament",{status:true,round:1});
-      io.to(matches[1]).emit("istournament",{status:true,round:1});
-    },2000);
+      io.to(matches[0]).emit("istournament",{status:true,round:1,isWinner:false});
+      io.to(matches[1]).emit("istournament",{status:true,round:1,isWinner:false});
+    },1200);
   });
-  socket.on('roundover',(roomId,oldId)=>{
-      const tourId = tourService.handleRound(1,roomId,oldId);
-      tourService.deleteMatch(tourId,roomId);
+  socket.on('roundover',(roomId)=>{
+      const tourId = tourService.handleRound(1,roomId,socket.id,false);
       io.to(roomId).emit("backToTour",tourId);
       if(tourService.isNextRoundReady(tourId)) {
-        const {finalRounds,winners,losers} = tourService.createFinalRound(tourId);
-
+        const {finalRounds, winners, losers} = tourService.createFinalRound(tourId);
         winners.forEach((player) => {
           const playerSocket = io.sockets.sockets.get(player);
           if (playerSocket) {
@@ -85,20 +81,23 @@ const tournamentHander = (io, tourService) => {
         setTimeout(()=>{
           io.to(finalRounds[0]).emit("istournament",{status:true,round:2,isWinner:true });
           io.to(finalRounds[1]).emit("istournament",{status:true,round:2,isWinner:false });
-        },6000);
+        },5200);
       }
   })
-  socket.on('finalEnd',(tourId,playerId,isWinner)=>{
-    const result = tourService.handleRound(2,tourId,playerId,isWinner);
-    io.to(tourId).emit("backToTour",result); 
+  socket.on('finalEnd',(roomId,isWinner)=>{
+    const result = tourService.handleRound(2,roomId,socket.id,isWinner);
+    io.to(roomId).emit("backToTour",result.tourId);
+    setTimeout(() => {
+      io.to(result.tourId).emit("finalResult",result);
+    }, 1500); 
   })
-  socket.on('sendWinners',(tourId,callback)=>{
+  socket.on('sendWinners',(tourId)=>{
     const winners = tourService.getWinners(tourId);
-    callback(winners);
+    io.to(tourId).emit("winners",winners);
   })
-  socket.on('sendLoosers',(tourId,callback)=>{
+  socket.on('sendLoosers',(tourId)=>{
     const loosers = tourService.getLooser(tourId);
-    callback(loosers);
+    io.to(tourId).emit("loosers",loosers);
   })
   socket.on("leaveTour",(roomCode)=>{ 
    socket.leave(roomCode);

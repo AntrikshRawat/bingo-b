@@ -8,6 +8,7 @@ class TournamentService {
     this.winners = {};
     this.losers = {};
     this.roomToTournament = {};
+    this.finalMatchReports= {};
   }
 
   generateRoomCode = () => {
@@ -26,30 +27,30 @@ class TournamentService {
     if (!tourRoom) return false; // Check if tournament exists
     const winners = this.winners[tourCode].length;
     const losers = this.losers[tourCode].length;
-    if (winners + losers < 2) return false; 
-    if(winners + losers >= 3) return true; 
-    return false; // Not enough players to proceed to the next round
+    if(winners >1 && losers >1) return true;
+    return false;
   }
   createFinalRound(tourCode) {
     const tourRoom = this.tournaments[tourCode];
-    if (!tourRoom) return null; // Check if tournament exists
-
+    if (!tourRoom) return null;
+  
     const winners = this.winners[tourCode];
     const losers = this.losers[tourCode];
 
     const room1 = this.generateRoomCode();
     const room2 = this.generateRoomCode();
 
-    const finalRounds = [room1, room2];
+    const finalRounds = [room1,room2];
+    this.matches[tourCode][room1] = winners.slice();
+    this.matches[tourCode][room2] = losers.slice();
 
-    this.matches[room1] = winners;
-    this.matches[room2] = losers;
-
-    this.roomToTournament[`${room1}`] = tourCode;
-    this.roomToTournament[`${room2}`] = tourCode;
-
+  
+    this.roomToTournament[finalRounds[0]] = tourCode;
+    this.roomToTournament[finalRounds[1]] = tourCode;
+  
     return { finalRounds, winners, losers };
   }
+  
   createOrJoinTournament(tourCode, socketId, name, wasHost) {
     if (!this.tournaments[tourCode]) {
       this.tournaments[tourCode] = new Room(tourCode);
@@ -57,6 +58,8 @@ class TournamentService {
       this.matches[tourCode] = {};
       this.winners[tourCode] = [];
       this.losers[tourCode] = [];
+      this.finalMatchReports[tourCode] = [];
+
     } else if (wasHost) {
       this.hosts[tourCode] = socketId;
     }
@@ -94,36 +97,43 @@ class TournamentService {
 
     return { matches: Object.keys(thisMatches), players1, players2 };
   }
-  deleteMatch(tourCode, roomId) {
-    if (this.matches[tourCode] && this.matches[tourCode][roomId]) {
-      delete this.matches[tourCode][roomId];
-    }
-    if (this.roomToTournament[roomId]) {
-      delete this.roomToTournament[roomId];
-    }
-  }
-  handleRound(round, roomId, socketId,isWinner) {
+
+  handleRound(round, roomId, socketId, isWinner) {
     const tourId = this.roomToTournament[roomId];
     if (!tourId || !this.matches[tourId]) return null;
-    const match = this.matches[tourId]; 
+    const players = this.matches[tourId][roomId];
+    const[winner,loser] = socketId===players[0]?[players[0],players[1]]:[players[1],players[0]]
+  
     if (round === 1) {
-      if (!match[roomId]) return null; // Ensure room exists
-      const loser = match[roomId].find(player => player !== socketId);
-      const winner = match[roomId].find(player => player === socketId);
+      if(this.winners[tourId].includes(winner) || this.losers[tourId].includes(loser))return;
+
       this.winners[tourId].push(winner);
-      if(loser)this.losers[tourId].push(loser);
+      this.losers[tourId].push(loser);
       return tourId;
-    } else if(round === 2) {
-      if (!match[roomId]) return null; // Ensure room exists
-      const loser = match[roomId].find(player => player !== socketId);
-      const winner = match[roomId].find(player => player === socketId);
-      this.winners[tourId].push(winner);
-      if(isWinner && loser)this.winners[tourId].push(loser);
-      return tourId;
+    }
+  
+    if (round === 2) {
+      const report = {
+        players: [winner, loser],
+        isWinner // true or false depending on reporter
+      };
+      if(this.finalMatchReports[tourId].includes(report)) return;
+
+      this.finalMatchReports[tourId].push(report);
+      if (this.finalMatchReports[tourId].length === 2) {
+        // Both players have reported
+        const winnerReport = this.finalMatchReports[tourId].find(r => r.isWinner);
+        const loserReport = this.finalMatchReports[tourId].find(r => !r.isWinner);
+        if (winnerReport && loserReport) {
+          const finalResult = [winnerReport.players[0], winnerReport.players[1], loserReport.players[0]];
+          const playersName = this.tournaments[tourId].getPlayersName(finalResult);
+          return ({status:true,result:playersName,tourId})
+        }
+      }
+      return({status:false,result:null,tourId});
     }
     return null;
   }
-
   getWinners(tourId) {
     const tourRoom = this.tournaments[tourId];
     if(!tourRoom) return;
@@ -139,32 +149,28 @@ class TournamentService {
   handlePlayerDisconnect(socketId) {
     for (const [tourCode, room] of Object.entries(this.tournaments)) {
       if (room.players[socketId]) {
-        const wasHost = this.hosts[tourCode] === socketId;
         room.removePlayer(socketId);
-
         if (Object.keys(room.players).length === 0) {
           delete this.tournaments[tourCode];
           delete this.hosts[tourCode];
           delete this.matches[tourCode];
           delete this.winners[tourCode];
           delete this.losers[tourCode];
-
-          
+          delete this.finalMatchReports[tourCode];
           Object.keys(this.roomToTournament).forEach(roomId => {
             if (this.roomToTournament[roomId] === tourCode) {
               delete this.roomToTournament[roomId];
             }
           });
-
           return null;
         }
-
-        if (wasHost && Object.keys(room.players).length > 0) {
+        const wasHost = this.hosts[tourCode] === socketId;
+        if (wasHost) {
           this.hosts[tourCode] = room.changeHost();
-          return { tourCode, room, isHostChange: true, isReconnecting: false };
+          return { tourCode, room, isHostChange: true};
         }
 
-        return { tourCode, room, isHostChange: false };
+        return { tourCode, room, isHostChange: false};
       }
     }
     return null;
