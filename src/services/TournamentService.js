@@ -27,8 +27,8 @@ class TournamentService {
     if (!tourRoom) return false; // Check if tournament exists
     const winners = this.winners[tourCode].length;
     const losers = this.losers[tourCode].length;
-    if(winners >1 && losers >1) return true;
-    return false;
+    if(winners + losers <= 2) return false;
+    return true;
   }
   createFinalRound(tourCode) {
     const tourRoom = this.tournaments[tourCode];
@@ -100,13 +100,13 @@ class TournamentService {
 
   handleRound(round, roomId, socketId, isWinner) {
     const tourId = this.roomToTournament[roomId];
-    if (!tourId || !this.matches[tourId]) return null;
+    if (!tourId || !this.matches[tourId]) return tourId;
     const players = this.matches[tourId][roomId];
     const[winner,loser] = socketId===players[0]?[players[0],players[1]]:[players[1],players[0]]
   
     if (round === 1) {
-      if(this.winners[tourId].includes(winner) || this.losers[tourId].includes(loser))return;
-
+      if(this.winners[tourId].includes(winner) || this.losers[tourId].includes(loser) ||this.winners[tourId].includes(loser) || this.losers[tourId].includes(winner))
+      return tourId;
       this.winners[tourId].push(winner);
       this.losers[tourId].push(loser);
       return tourId;

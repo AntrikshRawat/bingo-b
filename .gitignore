@@ -1,1 +1,15 @@
 .vercel
+.env
+.DS_Store
+dist/
+build/
+*.log
+*.tmp
+*.swp
+.idea/
+.vscode/
+coverage/
+
+# Ignore all node_modules except this folder
+/node_modules
+!/node_modules/

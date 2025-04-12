@@ -89,7 +89,7 @@ const tournamentHander = (io, tourService) => {
     io.to(roomId).emit("backToTour",result.tourId);
     setTimeout(() => {
       io.to(result.tourId).emit("finalResult",result);
-    }, 1500); 
+    }, 1350); 
   })
   socket.on('sendWinners',(tourId)=>{
     const winners = tourService.getWinners(tourId);
