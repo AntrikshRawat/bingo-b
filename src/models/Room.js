@@ -17,8 +17,10 @@ class Room {
  getPlayersName(players = null) {
   if(!players)
   return Object.keys(this.players).map(id => this.players[id].name);
-  const playerNames = Object.keys(this.players).filter(player => players.includes(player)).map(player => this.players[player].name);
+else {
+  const playerNames = players.map((player)=>this.players[player].name);
   return playerNames;
+}
  }
  removePlayer(socketId) {
    delete this.players[socketId];

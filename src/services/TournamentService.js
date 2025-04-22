@@ -117,7 +117,7 @@ class TournamentService {
         players: [winner, loser],
         isWinner // true or false depending on reporter
       };
-      if(this.finalMatchReports[tourId].includes(report)) return;
+      if(this.finalMatchReports[tourId].find(r=>r.isWinner===isWinner)) return;
 
       this.finalMatchReports[tourId].push(report);
       if (this.finalMatchReports[tourId].length === 2) {
